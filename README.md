@@ -287,8 +287,9 @@ A Case ID is treated as an identifier, not a credential — knowing it is not en
 
 ```bash
 # 1. Clone
-git clone <your-repo-url>
-cd razorpay-trust-copilot
+git clone https://github.com/2KRISHNAYADAV/Razorpay-Trust-Copilot.git
+cd Razorpay-Trust-Copilot
+
 
 # 2. Activate the virtual environment
 #    Windows PowerShell:
@@ -365,6 +366,9 @@ curl "http://127.0.0.1:8000/cases?tier=agent_review"
 
 # escalate cases sorted by risk_score (explicit)
 curl "http://127.0.0.1:8000/cases?tier=escalate&sort=risk_score"
+
+
+
 ```
 
 Valid `tier` values: `auto_clear` · `agent_review` · `escalate`
@@ -563,54 +567,17 @@ razorpay-trust-copilot/
     └── BUILD_LOG.md                  # the actual prompts used to build this with an AI coding agent
 ```
 
+
+
 ## Application Screenshots
 
-<table>
-  <tr>
-    <td align="center" width="50%">
-      <strong>Ops Console</strong><br><br>
-      <a href="http://127.0.0.1:8000/index.html">
-        <img src="https://github.com/user-attachments/assets/6a076144-71f7-42be-8285-ad200a65c6af" width="96%" alt="Ops Console">
-      </a>
-    </td>
-    <td align="center" width="50%">
-      <strong>Analytics Dashboard</strong><br><br>
-      <a href="http://127.0.0.1:8000/eda.html">
-        <img src="https://github.com/user-attachments/assets/665236d0-813e-43f8-b2b0-7cb654e71612" width="96%" alt="Analytics Dashboard">
-      </a>
-    </td>
-  </tr>
-
-  <tr>
-    <td align="center" width="50%">
-      <strong>Analytics — Detailed View</strong><br><br>
-      <a href="http://127.0.0.1:8000/eda.html">
-        <img src="https://github.com/user-attachments/assets/4689a228-fa2b-46ca-8c74-af59e77f3e6d" width="96%" alt="Analytics Dashboard — Detailed View">
-      </a>
-    </td>
-    <td align="center" width="50%">
-      <strong>Merchant Portal</strong><br><br>
-      <a href="http://127.0.0.1:8000/portal.html">
-        <img src="https://github.com/user-attachments/assets/baa4c31b-f604-4c31-a6bd-2eb756d60752" width="96%" alt="Merchant Portal — Main View">
-      </a>
-    </td>
-  </tr>
-
-  <tr>
-    <td align="center" width="50%">
-      <strong>Merchant Portal — OTP Challenge</strong><br><br>
-      <a href="http://127.0.0.1:8000/portal.html">
-        <img src="https://github.com/user-attachments/assets/4b6ee470-932a-4f05-8c80-fc2efd92dc69" width="96%" alt="Merchant Portal — OTP Challenge">
-      </a>
-    </td>
-    <td align="center" width="50%">
-      <strong>Merchant Portal — Case Result</strong><br><br>
-      <a href="http://127.0.0.1:8000/portal.html">
-        <img src="https://github.com/user-attachments/assets/c1246b3d-8708-40a3-a67b-80a97ee71c88" width="96%" alt="Merchant Portal — Case Result">
-      </a>
-    </td>
-  </tr>
-</table>
+| **Ops Console** | **Analytics Dashboard** |
+|:---:|:---:|
+| <img src="https://github.com/user-attachments/assets/596505ca-f359-4888-89ed-d63d6b11f140" width="100%"> | <img src="https://github.com/user-attachments/assets/9ee77261-1391-441a-b478-01f4146b3573" width="100%"> |
+| **Analytics — Detailed View** | **Merchant Portal** |
+| <img src="https://github.com/user-attachments/assets/a7d42912-01f9-42f9-8436-17d0c80688b7" width="100%"> | <img src="https://github.com/user-attachments/assets/996f7ee2-7565-4aa7-a2ec-80a2c83ee206" width="100%"> |
+| **Merchant Portal — OTP Challenge** | **Merchant Portal — Case Result** |
+| <img src="https://github.com/user-attachments/assets/f241749e-f60a-43e4-b815-6fc156817ab2" width="100%"> | <img src="https://github.com/user-attachments/assets/a68e0ce5-8c86-49a5-93d7-573c76c6c1c1" width="100%"> |
 
 ---
 
@@ -618,20 +585,25 @@ razorpay-trust-copilot/
 
 <table>
   <tr>
-    <td align="center" width="50%">
-      <img src="https://github.com/user-attachments/assets/72616069-1dff-4661-a324-084f9bc08602" width="100%">
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/87fa6965-f399-4f50-ae63-bb25a4815a45" width="48%">
     </td>
-    <td align="center" width="50%">
-      <img src="https://github.com/user-attachments/assets/80481aae-ef75-47f5-be1b-67f24462830d" width="100%">
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/6d879d23-6315-485e-88a4-da443fe57927" width="48%">
     </td>
   </tr>
   <tr>
-    <td align="center" width="50%">
-      <img src="https://github.com/user-attachments/assets/6399de22-539c-432d-ab20-2bc173a85a57" width="100%">
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/f53d5fd5-4839-4c5b-b6d1-009e853589af" width="48%">
     </td>
-    <td align="center" width="50%">
-      <img src="https://github.com/user-attachments/assets/8eb764a6-f1f9-4a77-804f-4bc0a9c7457d" width="100%">
+    <td align="center">
+      <img src="https://github.com/user-attachments/assets/1adab2d6-403c-4625-a192-17ec93562de3" width="48%">
     </td>
+  </tr>
+</table>
+
+ 
+
   </tr>
 </table>
 
