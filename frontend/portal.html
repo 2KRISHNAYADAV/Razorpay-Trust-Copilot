@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trust Copilot — Merchant Portal</title>
+  <meta name="description" content="Razorpay Trust Copilot — check your account review status securely." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css?v=5" />
+  <style>
+    /* ── Portal-specific overrides ─────────────────────────── */
+
+    .portal-wrap {
+      max-width: 1000px;
+      margin: 48px auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .portal-hero {
+      margin-bottom: 4px;
+    }
+    .portal-hero h1 {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+      color: var(--text-1);
+      margin-bottom: 6px;
+    }
+    .portal-hero p {
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.6;
+      max-width: 520px;
+    }
+
+    /* Search card */
+    .search-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 22px 24px;
+    }
+
+    .search-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .form-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      background: var(--bg);
+      color: var(--text-1);
+      font-size: 14px;
+      font-family: inherit;
+      font-variant-numeric: tabular-nums;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .form-input::placeholder { color: var(--text-3); }
+    .form-input:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-ring);
+    }
+
+    .btn-primary {
+      padding: 10px 20px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-sm);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, box-shadow 0.2s;
+      white-space: nowrap;
+      font-family: inherit;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--accent-hover);
+      box-shadow: 0 0 0 3px var(--accent-ring);
+    }
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+    .btn-primary:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* Result card */
+    .result-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-md);
+      padding: 24px;
+      display: none;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .result-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .result-card { transition: none; }
+    }
+
+    /* Error state inside card */
+    .result-card.error-state {
+      border-color: var(--red-bg-ring);
+      background: var(--red-bg);
+    }
+    .result-card.error-state .error-icon {
+      font-size: 28px;
+      display: block;
+      margin-bottom: 10px;
+    }
+    .result-card.error-state .error-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--red-bg-text);
+      margin-bottom: 6px;
+    }
+    .result-card.error-state .error-body {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.6;
+    }
+
+    /* Merchant header row */
+    .merchant-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 20px;
+      gap: 12px;
+    }
+    .merchant-label {
+      font-size: 11px;
+      color: var(--text-3);
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .merchant-name {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text-1);
+      letter-spacing: -0.2px;
+    }
+
+    /* Status badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 13px;
+      border-radius: 99px;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .status-badge::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+      flex-shrink: 0;
+    }
+
+    .status-cleared {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid var(--green-bg-ring);
+    }
+    .status-review {
+      background: var(--amber-bg);
+      color: var(--amber);
+      border: 1px solid var(--amber-border);
+    }
+    .status-escalate {
+      background: var(--red-bg);
+      color: var(--red);
+      border: 1px solid var(--red-bg-ring);
+    }
+    .status-resolved {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid var(--green-bg-ring);
+    }
+
+    /* Explanation block */
+    .explanation-block {
+      margin-bottom: 0;
+    }
+    .explanation-label {
+      font-size: 11px;
+      color: var(--text-3);
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+    .explanation-text {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: var(--r-sm);
+      padding: 14px 16px;
+      font-size: 14px;
+      color: var(--text-2);
+      line-height: 1.7;
+    }
+
+    /* Upload section */
+    .upload-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+      display: none;
+    }
+    .upload-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-1);
+      margin-bottom: 6px;
+    }
+    .upload-desc {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.6;
+      margin-bottom: 16px;
+    }
+    .upload-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .file-input-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 14px;
+      background: var(--bg-hover);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .file-input-label:hover { border-color: var(--border-hi); color: var(--text-1); }
+    .file-input-label:focus-within {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    #file-upload { display: none; }
+    #file-name-display {
+      font-size: 12.5px;
+      color: var(--text-3);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .btn-secondary {
+      padding: 8px 16px;
+      background: var(--bg-hover);
+      color: var(--text-1);
+      border: 1px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: border-color 0.15s;
+      font-family: inherit;
+    }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+    .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .upload-feedback {
+      margin-top: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      display: none;
+      padding: 10px 14px;
+      border-radius: var(--r-sm);
+    }
+    .upload-feedback.success {
+      background: var(--green-bg);
+      color: var(--green);
+      border: 1px solid var(--green-bg-ring);
+    }
+    .upload-feedback.error {
+      background: var(--red-bg);
+      color: var(--red-bg-text);
+      border: 1px solid var(--red-bg-ring);
+    }
+    .upload-feedback.loading {
+      background: var(--bg-hover);
+      color: var(--text-2);
+      border: 1px solid var(--border);
+    }
+
+    /* Keyboard focus for all interactive elements */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <nav class="topnav" aria-label="Primary navigation">
+    
+    <a href="portal.html" class="topnav__logo" title="Merchant Portal Home">
+      <img src="logo.png" class="topnav__logo-mark" style="background: transparent;" alt="RT" />
+      <span class="topnav__product">Razorpay Trust Copilot</span>
+    </a>
+    <div class="topnav__divider" aria-hidden="true"></div>
+    <span class="topnav__page">Merchant Portal</span>
+    <div class="topnav__spacer"></div>
+    <div id="secure-session-badge" style="display: none; align-items: center; gap: 12px;">
+      <span style="font-size: 12px; font-weight: 500; color: var(--green);">🔒 Secure Session</span>
+      <button id="btn-logout" class="chip-btn" style="padding: 4px 10px;">Sign out</button>
+    </div>
+
+  </nav>
+
+  <main class="main" id="main">
+    <div class="portal-wrap">
+
+      
+      <!-- Screen 1: Lookup -->
+      <div id="screen-lookup" class="screen active-screen">
+        <div class="portal-hero">
+          <h1>Check your case</h1>
+          <p>Enter your case ID to securely access your case status and review information.</p>
+        </div>
+        <div class="search-card">
+          <form id="check-form" aria-label="Case status lookup">
+            <div class="search-row">
+              <label for="input-case-id" class="sr-only">Case ID</label>
+              <input type="text" id="input-case-id" class="form-input" placeholder="e.g. TC-8F42K1" autocomplete="off" spellcheck="false" required aria-label="Case ID" />
+              <button type="submit" class="btn-primary" id="btn-check">Continue</button>
+            </div>
+            <div id="lookup-error" class="error-msg" style="display:none; color: var(--red); font-size: 13px; margin-top: 8px;"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Screen 2: Verification -->
+      <div id="screen-verify" class="screen" style="display: none;">
+        <div class="portal-hero">
+          <h1>Verify your case</h1>
+          <p>For your security, a verification code is required before we show case information.</p>
+        </div>
+        <div class="search-card">
+          <form id="verify-form" aria-label="Verify case">
+            <div class="search-row">
+              <label for="input-verify-code" class="sr-only">6-digit verification code</label>
+              <input type="text" id="input-verify-code" class="form-input" placeholder="_ _ _ _ _ _" autocomplete="off" maxlength="6" pattern="\d{6}" required aria-label="Verification Code" />
+              <button type="submit" class="btn-primary" id="btn-verify">Verify & Continue</button>
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+              <span style="font-size: 12px; color: var(--text-2);">Your verification code expires in 10 minutes.</span>
+              <button type="button" id="btn-resend" class="chip-btn" style="background: transparent; border: none; padding: 0; color: var(--accent); cursor: pointer;">Resend Code</button>
+            </div>
+            <div id="verify-error" class="error-msg" style="display:none; color: var(--red); font-size: 13px; margin-top: 8px;"></div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Screen 3: Portal -->
+      <div id="screen-portal" class="screen" style="display: none;">
+        <div class="verified-banner">
+          <span class="verified-banner__icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+          <div>
+            <div class="verified-banner__title">Identity Verified</div>
+            <div class="verified-banner__sub">Your secure session is active. Case details are shown below.</div>
+          </div>
+        </div>
+      <!-- Result card (populated by JS) -->
+      <div
+        id="result-container"
+        class="result-card"
+        role="region"
+        aria-live="polite"
+        aria-label="Case status result"
+      ></div>
+
+      <!-- Assistant Container -->
+      <div id="assistant-container" class="assistant-container" style="display: none; opacity: 0; transform: translateY(8px);">
+        <div class="assistant-header">
+          <span class="assistant-header-icon">🤖</span>
+          <div>
+            <div style="font-size: 16px; font-weight: 600;">Trust Assistant</div>
+            <div style="font-size: 12px; font-weight: 400; color: var(--text-2);">Ask questions about your case</div>
+          </div>
+        </div>
+        <div id="assistant-chat-window" class="assistant-chat-window">
+          <div class="chat-bubble bot">Hello! I can help explain your risk score, settlement status, and what you need to do next. How can I help?</div>
+        </div>
+        <div class="quick-actions">
+          <button type="button" class="chip-btn" onclick="sendAssistantMsg('Why was I flagged?')">Why was I flagged?</button>
+          <button type="button" class="chip-btn" onclick="sendAssistantMsg('Explain my risk score')">Explain my risk score</button>
+          <button type="button" class="chip-btn" onclick="sendAssistantMsg('What documents do I need?')">What documents do I need?</button>
+        </div>
+        <form id="assistant-form" class="chat-input-row" onsubmit="handleAssistantSubmit(event)">
+          <input type="text" id="assistant-input" class="chat-input" placeholder="Ask a question..." autocomplete="off" maxlength="500" />
+          <button type="submit" id="assistant-send-btn" class="chat-send-btn">Send</button>
+        </form>
+        <div class="chat-disclaimer">
+          Trust Assistant explains information from your case. Final risk decisions are made by the platform's risk review process.
+        </div>
+      </div>
+
+      </div> <!-- End Screen 3 -->
+    </div>
+
+    <div style="text-align: center; font-size: 11px; color: var(--text-3); margin-top: 48px; padding-bottom: 24px;">
+      Case information is protected by verification and a secure session.
+    </div>
+  </main>
+</div>
+
+<style>
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+</style>
+
+<script src="app.js?v=6"></script>
+<script>
+  let currentCaseId = null;
+
+  const screenLookup = document.getElementById('screen-lookup');
+  const screenVerify = document.getElementById('screen-verify');
+  const screenPortal = document.getElementById('screen-portal');
+  const sessionBadge = document.getElementById('secure-session-badge');
+
+  const checkForm = document.getElementById('check-form');
+  const verifyForm = document.getElementById('verify-form');
+  const inputCaseId = document.getElementById('input-case-id');
+  const inputVerifyCode = document.getElementById('input-verify-code');
+  const btnCheck = document.getElementById('btn-check');
+  const btnVerify = document.getElementById('btn-verify');
+  const btnResend = document.getElementById('btn-resend');
+  const btnLogout = document.getElementById('btn-logout');
+  const lookupError = document.getElementById('lookup-error');
+  const verifyError = document.getElementById('verify-error');
+  const resultContainer = document.getElementById('result-container');
+
+  function showScreen(screenId) {
+    screenLookup.style.display = 'none';
+    screenVerify.style.display = 'none';
+    screenPortal.style.display = 'none';
+    document.getElementById(screenId).style.display = 'block';
+  }
+
+  function escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  /* ── Auth Flow ───────────────────────────────────────────────────────────── */
+
+  checkForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const caseId = inputCaseId.value.trim();
+    if (!caseId) return;
+
+    btnCheck.disabled = true;
+    btnCheck.textContent = 'Requesting...';
+    lookupError.style.display = 'none';
+
+    try {
+      await apiFetch('/auth/case/request-code', {
+        method: 'POST',
+        body: JSON.stringify({ case_id: caseId })
+      });
+      currentCaseId = caseId;
+      showScreen('screen-verify');
+    } catch (err) {
+      lookupError.textContent = err.message || 'Unable to verify the information provided.';
+      lookupError.style.display = 'block';
+    } finally {
+      btnCheck.disabled = false;
+      btnCheck.textContent = 'Continue';
+    }
+  });
+
+  btnResend.addEventListener('click', async () => {
+    if (!currentCaseId) return;
+    btnResend.disabled = true;
+    btnResend.textContent = 'Sending...';
+    try {
+      await apiFetch('/auth/case/request-code', {
+        method: 'POST',
+        body: JSON.stringify({ case_id: currentCaseId })
+      });
+      verifyError.style.color = 'var(--green)';
+      verifyError.textContent = '✓ A new verification code was sent.';
+      verifyError.style.display = 'block';
+      setTimeout(() => { verifyError.style.display = 'none'; verifyError.style.color = 'var(--red)'; }, 4000);
+    } catch (err) {
+      verifyError.style.color = 'var(--red)';
+      verifyError.textContent = err.message || 'Unable to resend code.';
+      verifyError.style.display = 'block';
+    } finally {
+      btnResend.disabled = false;
+      btnResend.textContent = 'Resend Code';
+    }
+  });
+
+  verifyForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const code = inputVerifyCode.value.trim();
+    if (!code || !currentCaseId) return;
+
+    btnVerify.disabled = true;
+    btnVerify.textContent = 'Verifying...';
+    verifyError.style.display = 'none';
+
+    try {
+      await apiFetch('/auth/case/verify', {
+        method: 'POST',
+        body: JSON.stringify({ case_id: currentCaseId, code })
+      });
+      
+      // Successfully authenticated! Now fetch case data.
+      await loadCaseData();
+      
+      sessionBadge.style.display = 'flex';
+      showScreen('screen-portal');
+    } catch (err) {
+      verifyError.textContent = err.message || 'Unable to verify the information provided.';
+      verifyError.style.display = 'block';
+    } finally {
+      btnVerify.disabled = false;
+      btnVerify.textContent = 'Verify & Continue';
+    }
+  });
+
+  btnLogout.addEventListener('click', async () => {
+    try {
+      await apiFetch('/auth/logout', { method: 'POST' });
+    } catch (e) {} // ignore errors on logout
+    
+    currentCaseId = null;
+    inputCaseId.value = '';
+    inputVerifyCode.value = '';
+    sessionBadge.style.display = 'none';
+    showScreen('screen-lookup');
+  });
+
+  /* ── Load Case Data ──────────────────────────────────────────────────────── */
+
+  async function loadCaseData() {
+    try {
+      const c = await getCase(currentCaseId);
+      renderResult(c);
+    } catch (err) {
+      handleAuthError(err);
+    }
+  }
+
+  function handleAuthError(err) {
+    alert(err.message || 'Secure session expired or unauthorized.');
+    btnLogout.click();
+  }
+
+  /* ── Tier → human status ─────────────────────────────────────────────── */
+  function getStatusInfo(tier) {
+    if (tier === 'auto_clear')   return { label: 'Cleared',                   cls: 'status-cleared'  };
+    if (tier === 'agent_review') return { label: 'Under review',              cls: 'status-review'   };
+    if (tier === 'escalate')     return { label: 'Compliance review required', cls: 'status-escalate' };
+    return { label: 'Status unknown', cls: '' };
+  }
+
+  /* ── Show result card ────────────────────────────────────────────────── */
+  function renderResult(c) {
+    const si = getStatusInfo(c.decision_tier);
+    const explanation = c.plain_language_explanation
+      ? escHtml(c.plain_language_explanation)
+      : '<em>No explanation available.</em>';
+
+    const html = `
+      <div class="merchant-row">
+        <div>
+          <div class="merchant-label">Merchant</div>
+          <div class="merchant-name">${escHtml(c.merchant_name)}</div>
+          <div style="font-size: 11px; font-family: var(--mono); color: var(--text-3); margin-top: 3px;">${escHtml(c.case_id)}</div>
+        </div>
+        <span id="result-status" class="status-badge ${si.cls}">${escHtml(si.label)}</span>
+      </div>
+      <div class="explanation-block">
+        <div class="explanation-label">Here's what we found</div>
+        <div class="explanation-text">${explanation}</div>
+      </div>
+    `;
+    
+    resultContainer.className = 'result-card';
+    resultContainer.innerHTML = html;
+    resultContainer.style.display = 'block';
+
+    const assistantEl = document.getElementById('assistant-container');
+    assistantEl.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+    assistantEl.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      resultContainer.classList.add('visible');
+      assistantEl.style.opacity = '1';
+      assistantEl.style.transform = 'translateY(0)';
+    }));
+  }
+
+  /* ── Trust Assistant ─────────────────────────────────────────────────── */
+  async function sendAssistantMsg(msg) {
+    const input = document.getElementById('assistant-input');
+    const windowEl = document.getElementById('assistant-chat-window');
+    if (!msg || !currentCaseId) return;
+    if (input) input.value = '';
+    
+    windowEl.innerHTML += `<div class="chat-bubble user">${escHtml(msg)}</div>`;
+    windowEl.scrollTop = windowEl.scrollHeight;
+    
+    const typingId = 'typing-' + Date.now();
+    windowEl.innerHTML += `<div id="${typingId}" class="chat-bubble bot"><div class="typing-indicator"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div>`;
+    windowEl.scrollTop = windowEl.scrollHeight;
+    
+    try {
+      const res = await askAssistant(currentCaseId, msg);
+      document.getElementById(typingId).remove();
+      windowEl.innerHTML += `<div class="chat-bubble bot">${escHtml(res.answer)}</div>`;
+    } catch (err) {
+      document.getElementById(typingId).remove();
+      if (err.message && (err.message.includes('401') || err.message.includes('Authentication'))) {
+        handleAuthError(err);
+      } else {
+        windowEl.innerHTML += `<div class="chat-bubble bot" style="color:var(--red)">Sorry, I encountered an error: ${escHtml(err.message)}</div>`;
+      }
+    }
+    windowEl.scrollTop = windowEl.scrollHeight;
+  }
+
+  function handleAssistantSubmit(e) {
+    e.preventDefault();
+    const input = document.getElementById('assistant-input');
+    if (input && input.value.trim()) {
+      sendAssistantMsg(input.value.trim());
+    }
+  }
+</script>
+</body>
+</html>

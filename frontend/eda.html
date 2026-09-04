@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Analytics — Trust Copilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css?v=2" />
+  <style>
+    /* Bento-box Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      grid-auto-rows: minmax(280px, auto);
+      gap: 16px;
+    }
+    
+    .chart-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      overflow: hidden;
+      min-width: 0;
+      transition: border-color 0.3s, transform 0.3s, box-shadow 0.3s;
+    }
+    .chart-card:hover {
+      border-color: var(--border-hi);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+    
+    /* Grid spanning */
+    .col-span-12 { grid-column: span 12; }
+    .col-span-8  { grid-column: span 8; }
+    .col-span-6  { grid-column: span 6; }
+    .col-span-4  { grid-column: span 4; }
+    
+    @media (max-width: 1024px) {
+      .col-span-8, .col-span-6, .col-span-4 { grid-column: span 12; }
+    }
+
+    .chart-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-1);
+      margin-bottom: 20px;
+      letter-spacing: -0.2px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .chart-title-icon {
+      display: flex; align-items: center; justify-content: center;
+      width: 24px; height: 24px;
+      border-radius: var(--r-sm);
+      background: var(--bg-hover);
+      color: var(--text-2);
+    }
+    .chart-container {
+      flex: 1;
+      position: relative;
+      width: 100%;
+      min-height: 250px;
+    }
+    
+    /* Animations */
+    .dashboard-grid > div:nth-child(1) { animation: rowIn 0.5s var(--ease) 0.1s both; }
+    .dashboard-grid > div:nth-child(2) { animation: rowIn 0.5s var(--ease) 0.2s both; }
+    .dashboard-grid > div:nth-child(3) { animation: rowIn 0.5s var(--ease) 0.3s both; }
+    .dashboard-grid > div:nth-child(4) { animation: rowIn 0.5s var(--ease) 0.4s both; }
+    .dashboard-grid > div:nth-child(5) { animation: rowIn 0.5s var(--ease) 0.5s both; }
+
+    /* Premium Summary Stats Row */
+    .eda-stats-row {
+      display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+    }
+    .eda-stat-card {
+      flex: 1; min-width: 200px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--r-lg);
+      padding: 16px 20px;
+      display: flex; flex-direction: column; gap: 4px;
+      position: relative; overflow: hidden;
+      animation: rowIn 0.5s var(--ease) both;
+      transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+      cursor: default;
+    }
+    .eda-stat-card:hover { 
+      border-color: var(--border-hi); 
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    }
+    
+    /* Beautiful subtle background gradients */
+    .eda-stat-card:nth-child(1) { background: linear-gradient(145deg, #ffffff 0%, #f8faff 100%); }
+    .eda-stat-card:nth-child(2) { background: linear-gradient(145deg, #ffffff 0%, #fffcfc 100%); }
+    .eda-stat-card:nth-child(3) { background: linear-gradient(145deg, #ffffff 0%, #f5fdf9 100%); }
+    .eda-stat-card:nth-child(4) { background: linear-gradient(145deg, #ffffff 0%, #fffbf5 100%); }
+
+    /* The top border bar */
+    .eda-stat-card::after {
+      content: ''; position: absolute; top:0; left:0; width: 100%; height: 2px;
+    }
+    .eda-stat-card:nth-child(1)::after { background: var(--accent); }
+    .eda-stat-card:nth-child(2)::after { background: var(--red); }
+    .eda-stat-card:nth-child(3)::after { background: var(--green); }
+    .eda-stat-card:nth-child(4)::after { background: var(--amber); }
+    
+    .eda-stat-val { font-size: 26px; font-weight: 700; color: var(--text-1); letter-spacing: -1px; line-height: 1; display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+    .eda-stat-label { font-size: 10px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <nav class="topnav" aria-label="Primary navigation">
+    <a href="/" class="topnav__logo" title="Home">
+      <img src="logo.png" class="topnav__logo-mark" style="background: transparent;" alt="RT" />
+      <span class="topnav__product">Razorpay Trust Copilot</span>
+    </a>
+    <div class="topnav__divider" aria-hidden="true"></div>
+    <a href="index.html" class="topnav__page" style="text-decoration: none; transition: color 0.15s;" onmouseover="this.style.color='var(--text-1)'" onmouseout="this.style.color='var(--text-3)'">Ops Console</a>
+    <span class="topnav__page active-page" aria-current="page" style="margin-left: 20px;">Analytics</span>
+    <div class="topnav__spacer"></div>
+    <div class="topnav__live" aria-label="Live">
+      <div class="topnav__live-dot"></div>
+      Live
+    </div>
+    <div class="topnav__user" title="Risk Analyst — Internal Access">
+      <div class="topnav__avatar">RA</div>
+      <span class="topnav__username">Risk Analyst</span>
+    </div>
+    <span class="topnav__badge" id="nav-env-badge">Internal</span>
+  </nav>
+
+  <main class="main" id="main" style="max-width: 1400px;">
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">Risk Analytics Dashboard</h1>
+        <p class="section-subtitle">Real-time macro analysis of merchant risk distribution, AI feature importance, and ground truth accuracy</p>
+      </div>
+    </div>
+    
+    <div id="loading-state" style="text-align:center; padding: 120px 20px;">
+      <div class="typewriter-loading">Analyzing merchant population...</div>
+    </div>
+
+    <div id="dashboard" style="display:none;">
+      
+      <!-- High level summary stats -->
+      <div class="eda-stats-row">
+        <div class="eda-stat-card">
+          <div class="eda-stat-label">Total Merchants Monitored</div>
+          <div class="eda-stat-val">
+            <span id="stat-total-merchants">-</span>
+          </div>
+        </div>
+        <div class="eda-stat-card">
+          <div class="eda-stat-label">High Risk Cases (>70%)</div>
+          <div class="eda-stat-val" style="color: var(--red);">
+            <span id="stat-avg-risk">-</span>
+          </div>
+        </div>
+        <div class="eda-stat-card">
+          <div class="eda-stat-label">True Fraud Rate</div>
+          <div class="eda-stat-val" style="color: var(--green);">
+            <span id="stat-fraud-rate">-</span>
+          </div>
+        </div>
+        <div class="eda-stat-card">
+          <div class="eda-stat-label">Highest Risk Category</div>
+          <div class="eda-stat-val" style="font-size: 24px; color: var(--amber);">
+            <span id="stat-top-category">-</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-grid">
+
+        <!-- Top Risk Drivers (Horizontal Bar) -->
+        <div class="chart-card col-span-8">
+          <div class="chart-title">
+            <div class="chart-title-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            </div>
+            AI Feature Importance: Top Global Risk Drivers
+          </div>
+          <div class="chart-container" style="min-height: 320px;">
+            <canvas id="chart-top-drivers"></canvas>
+          </div>
+        </div>
+
+        <!-- Decision Tier Breakdown (Doughnut) -->
+        <div class="chart-card col-span-4">
+          <div class="chart-title">
+            <div class="chart-title-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21.21 15.89A10 10 0 1 1 8 2.83M22 12A10 10 0 0 0 12 2v10z"/></svg>
+            </div>
+            Decision Tier Routing
+          </div>
+          <div class="chart-container" style="min-height: 320px;">
+            <canvas id="chart-tier-breakdown"></canvas>
+          </div>
+        </div>
+
+        <!-- Risk Score Distribution (Bar) -->
+        <div class="chart-card col-span-6">
+          <div class="chart-title">
+            <div class="chart-title-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            </div>
+            Risk Score Distribution
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-risk-dist"></canvas>
+          </div>
+        </div>
+
+        <!-- Ground Truth Validation (Bar or Doughnut) -->
+        <div class="chart-card col-span-6">
+          <div class="chart-title">
+            <div class="chart-title-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            </div>
+            Ground Truth Accuracy (Fraud vs Legitimate)
+          </div>
+          <div class="chart-container">
+            <canvas id="chart-fraud-breakdown"></canvas>
+          </div>
+        </div>
+
+        <!-- Average Risk by MCC (Bar) -->
+        <div class="chart-card col-span-12">
+          <div class="chart-title">
+            <div class="chart-title-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"/><path d="M18 9l-5 5-4-4-5 5"/></svg>
+            </div>
+            Average Risk by Merchant Category (MCC)
+          </div>
+          <div class="chart-container" style="min-height: 350px;">
+            <canvas id="chart-mcc-risk"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="app.js?v=2"></script>
+<script src="eda.js?v=2"></script>
+</body>
+</html>

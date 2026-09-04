@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trust Copilot — Ops Console</title>
+  <meta name="description" content="Razorpay Trust Copilot — internal ops console for merchant risk review and triage." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="styles.css" />
+  <style>
+    #footer-count strong { color: var(--text-2); }
+    tbody tr.row-high-risk td:first-child::before {
+      content:''; position:absolute; left:0; top:10px; bottom:10px;
+      width:2px; background:var(--red); border-radius:0 2px 2px 0;
+    }
+    tbody tr.row-high-risk { position:relative; }
+    @keyframes rowIn { from{opacity:0;transform:translateY(5px)} to{opacity:1;transform:translateY(0)} }
+    tbody tr:not(.state-row) { animation: rowIn 0.2s cubic-bezier(0.16,1,0.3,1) both; }
+  </style>
+</head>
+<body>
+<div class="shell">
+  <nav class="topnav" aria-label="Primary navigation">
+    <a href="/" class="topnav__logo" title="Home">
+      <img src="logo.png" class="topnav__logo-mark" style="background: transparent;" alt="RT" />
+      <span class="topnav__product">Razorpay Trust Copilot</span>
+    </a>
+    <div class="topnav__divider" aria-hidden="true"></div>
+    <span class="topnav__page active-page" aria-current="page">Ops Console</span>
+    <a href="eda.html" class="topnav__page" style="margin-left: 20px; text-decoration: none; transition: color 0.15s;" onmouseover="this.style.color='var(--text-1)'" onmouseout="this.style.color='var(--text-3)'">Analytics</a>
+    <div class="topnav__spacer"></div>
+    <div class="topnav__live" aria-label="Live">
+      <div class="topnav__live-dot"></div>
+      Live
+    </div>
+    <div class="topnav__user" title="Risk Analyst — Internal Access">
+      <div class="topnav__avatar">RA</div>
+      <span class="topnav__username">Risk Analyst</span>
+    </div>
+    <span class="topnav__badge" id="nav-env-badge">Internal</span>
+  </nav>
+
+  <main class="main" id="main">
+    <!-- Zone 1: Title + secondary actions -->
+    <div class="section-header">
+      <div>
+        <h1 class="section-title">Merchant Risk Cases</h1>
+        <p class="section-subtitle">All pre-scored merchants, sorted by risk score descending</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <button id="btn-how-to-use" class="btn-how-to-use" aria-label="Open interactive tutorial">
+          <span class="btn-play"></span>How to Use
+        </button>
+        <button id="btn-demo" class="btn-demo" aria-label="Run demo walkthrough">
+          <span class="btn-play"></span>Demo
+        </button>
+      </div>
+    </div>
+
+    <!-- Zone 2: Search + Filters + Export -->
+    <div class="controls-bar" role="search" aria-label="Filter cases">
+      <input type="text" id="search-input" class="search-input" placeholder="Search merchant or case ID..." aria-label="Search cases">
+      <div class="tier-group" role="group">
+        <button class="tier-filter-btn active" data-tier="" id="btn-all">All <span class="count" id="count-all">-</span></button>
+        <button class="tier-filter-btn" data-tier="escalate" id="btn-escalate">Escalate <span class="count" id="count-escalate">-</span></button>
+        <button class="tier-filter-btn" data-tier="agent_review" id="btn-review">Agent Review <span class="count" id="count-review">-</span></button>
+        <button class="tier-filter-btn" data-tier="auto_clear" id="btn-clear">Auto Clear <span class="count" id="count-clear">-</span></button>
+      </div>
+      <button id="btn-export" class="tier-filter-btn" aria-label="Export to CSV">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>Export CSV
+      </button>
+    </div>
+
+    <!-- Stat cards -->
+    <div class="stats-row" aria-label="Summary statistics" id="stats-row">
+      <div class="stat-card stat-total" id="stat-card-total">
+        <div class="stat-card__top">
+          <div class="stat-card-icon stat-icon-total">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </div>
+          <div class="stat-value" id="stat-total" style="color:var(--accent)">-</div>
+        </div>
+        <div class="stat-card__meta">
+          <div class="stat-label">Total Cases</div>
+          <div class="stat-pct" id="stat-total-pct">100%</div>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" id="stat-total-bar" style="width:100%"></div></div>
+      </div>
+      <div class="stat-card stat-escalate">
+        <div class="stat-card__top">
+          <div class="stat-card-icon stat-icon-escalate">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <div class="stat-value" id="stat-escalate" style="color:var(--red)">-</div>
+        </div>
+        <div class="stat-card__meta">
+          <div class="stat-label">Escalate</div>
+          <div class="stat-pct" id="stat-escalate-pct">-</div>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" id="stat-escalate-bar"></div></div>
+      </div>
+      <div class="stat-card stat-review">
+        <div class="stat-card__top">
+          <div class="stat-card-icon stat-icon-review">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
+          <div class="stat-value" id="stat-review" style="color:var(--amber)">-</div>
+        </div>
+        <div class="stat-card__meta">
+          <div class="stat-label">Agent Review</div>
+          <div class="stat-pct" id="stat-review-pct">-</div>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" id="stat-review-bar"></div></div>
+      </div>
+      <div class="stat-card stat-clear">
+        <div class="stat-card__top">
+          <div class="stat-card-icon stat-icon-clear">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          </div>
+          <div class="stat-value" id="stat-clear" style="color:var(--green)">-</div>
+        </div>
+        <div class="stat-card__meta">
+          <div class="stat-label">Auto Clear</div>
+          <div class="stat-pct" id="stat-clear-pct">-</div>
+        </div>
+        <div class="stat-bar-track"><div class="stat-bar-fill" id="stat-clear-bar"></div></div>
+      </div>
+    </div>
+
+    <div class="table-card" role="region" aria-label="Cases table" id="table-card">
+      <div class="table-wrap">
+        <table id="cases-table" aria-live="polite" aria-busy="true">
+          <thead>
+            <tr>
+              <th scope="col" class="col-sortable" data-sort="merchant_name">Merchant <span class="sort-icon">↕</span></th>
+              <th scope="col" class="col-sortable" data-sort="mcc_category">MCC Category <span class="sort-icon">↕</span></th>
+              <th scope="col" class="col-score col-sortable sort-desc" data-sort="risk_score">Risk Score <span class="sort-icon">↓</span></th>
+              <th scope="col" class="col-reason">Top Risk Reason</th>
+              <th scope="col" class="col-tier col-sortable" data-sort="decision_tier">Decision Tier <span class="sort-icon">↕</span></th>
+              <th scope="col" class="col-action">Action</th>
+            </tr>
+          </thead>
+          <tbody id="cases-tbody">
+            <tr class="state-row">
+              <td colspan="6"><span class="spinner" aria-hidden="true"></span>Loading cases...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="table-footer">
+        <span id="footer-count">Loading...</span>
+        <span id="footer-filter" style="color:var(--text-3)"></span>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="panel-overlay" id="panel-overlay" aria-hidden="true"></div>
+
+<aside class="detail-panel" id="detail-panel" role="dialog" aria-modal="true" aria-label="Case detail" hidden>
+  <div class="panel-header">
+    <div class="panel-header__meta">
+      <div class="panel-merchant-name" id="panel-merchant">-</div>
+      <div class="panel-case-id" id="panel-caseid">-</div>
+    </div>
+    <button class="panel-close" id="panel-close" aria-label="Close panel">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg>
+    </button>
+  </div>
+  <div class="panel-meta-grid">
+    <div class="panel-meta-item">
+      <div class="panel-meta-label">Category</div>
+      <div id="panel-mcc">-</div>
+    </div>
+    <div class="panel-meta-item">
+      <div class="panel-meta-label">Risk Score</div>
+      <div id="panel-score-badge">-</div>
+    </div>
+    <div class="panel-meta-item">
+      <div class="panel-meta-label">Decision Tier</div>
+      <div id="panel-tier-badge">-</div>
+    </div>
+  </div>
+  <div class="panel-body" id="panel-body"></div>
+  <div class="panel-verdict">
+    <div class="panel-verdict-label">Analyst Verdict</div>
+    <div class="verdict-btns">
+      <button class="btn-verdict btn-fraud" id="btn-fraud" aria-label="Mark as fraud">Mark as Fraud</button>
+      <button class="btn-verdict btn-legit" id="btn-legit" aria-label="Mark as legitimate">Mark as Legitimate</button>
+    </div>
+    <div class="panel-resolved-banner" id="panel-banner" aria-live="polite"></div>
+  </div>
+</aside>
+
+<div class="tutorial-overlay" id="tutorial-overlay" aria-hidden="true">
+  <div class="tutorial-spotlight" id="tutorial-spotlight"></div>
+  <div class="tutorial-arrow" id="tutorial-arrow"></div>
+  <div class="tutorial-tooltip" id="tutorial-tooltip"></div>
+</div>
+
+<div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+<script src="app.js"></script>
+<script>
+var currentTier  = '';
+var allCounts    = {};
+var activeCaseId = null;
+var activeRow    = null;
+
+var tbody       = document.getElementById('cases-tbody');
+var table       = document.getElementById('cases-table');
+var footerCount = document.getElementById('footer-count');
+var footerFilter= document.getElementById('footer-filter');
+var statTotal   = document.getElementById('stat-total');
+var statEscalate= document.getElementById('stat-escalate');
+var statReview  = document.getElementById('stat-review');
+var statClear   = document.getElementById('stat-clear');
+var countAll    = document.getElementById('count-all');
+var countEscalate=document.getElementById('count-escalate');
+var countReview = document.getElementById('count-review');
+var countClear  = document.getElementById('count-clear');
+var overlay     = document.getElementById('panel-overlay');
+var panel       = document.getElementById('detail-panel');
+var panelBody   = document.getElementById('panel-body');
+var panelMerchant=document.getElementById('panel-merchant');
+var panelCaseId = document.getElementById('panel-caseid');
+var panelMcc    = document.getElementById('panel-mcc');
+var panelScore  = document.getElementById('panel-score-badge');
+var panelTier   = document.getElementById('panel-tier-badge');
+var panelBanner = document.getElementById('panel-banner');
+var btnFraud    = document.getElementById('btn-fraud');
+var btnLegit    = document.getElementById('btn-legit');
+var btnClose    = document.getElementById('panel-close');
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function formatMcc(raw) { return raw.replace(/_/g,' ').replace(/\b\w/g,function(c){return c.toUpperCase();}); }
+function animateCount(el, target) {
+  var start = parseInt(el.textContent) || 0;
+  var dur = 550, t0 = performance.now();
+  function step(now) {
+    var p = Math.min((now-t0)/dur, 1);
+    var ease = 1 - Math.pow(1-p, 3);
+    el.textContent = Math.round(start + (target-start)*ease).toLocaleString();
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function setLoadingState() {
+  tbody.innerHTML = '<tr class="state-row"><td colspan="6"><div class="typewriter-loading">Razorpay Trust Copilot...</div></td></tr>';
+  table.setAttribute('aria-busy','true');
+}
+function setErrorState(msg) {
+  tbody.innerHTML = '<tr class="state-row"><td colspan="6"><span class="error-text">'+escHtml(msg)+'</span></td></tr>';
+  footerCount.textContent = 'Error fetching cases.';
+  table.setAttribute('aria-busy','false');
+}
+function setEmptyState(tier) {
+  var labels = {escalate:'Escalate',agent_review:'Agent Review',auto_clear:'Auto Clear'};
+  var label = labels[tier] || 'any tier';
+  var sub = tier ? 'No cases in this tier right now.' : 'No cases loaded. Check backend is running.';
+  tbody.innerHTML = '<tr class="state-row"><td colspan="6"><span class="state-empty-msg">No cases in '+escHtml(label)+'</span><span class="state-empty-sub">'+escHtml(sub)+'</span></td></tr>';
+  table.setAttribute('aria-busy','false');
+}
+
+function renderTopReason(reasons) {
+  if (!reasons || !reasons.length) return '<span style="color:var(--text-3);font-size:12px">—</span>';
+  var r = reasons[0];
+  var isRisk = r.direction === 'raises risk';
+  var cls = isRisk ? 'reason-pill reason-pill--up' : 'reason-pill reason-pill--down';
+  var arrow = isRisk ? '↑' : '↓';
+  var label = escHtml(r.friendly_label || r.feature || 'Unknown');
+  return '<span class="'+cls+'"><span class="reason-pill__arrow">'+arrow+'</span><span class="reason-pill__label">'+label+'</span></span>';
+}
+
+function buildRow(c, idx) {
+  var isHigh = c.risk_score > 0.70;
+  var tr = document.createElement('tr');
+  tr.dataset.caseId = c.case_id;
+  if (isHigh) tr.classList.add('row-high-risk');
+  tr.style.animationDelay = Math.min(idx*18,260)+'ms';
+  tr.innerHTML = '<td><div class="td-merchant">'+escHtml(c.merchant_name)+'</div><div class="merchant-id">'+escHtml(c.case_id)+'</div></td>'
+    +'<td class="td-mcc">'+escHtml(formatMcc(c.mcc_category))+'</td>'
+    +'<td class="col-score" data-score-cell>'+renderRiskBadge(c.risk_score)+'</td>'
+    +'<td class="col-reason">'+renderTopReason(c.top_reasons)+'</td>'
+    +'<td class="col-tier" data-tier-cell>'+renderTierPill(c.decision_tier)+'</td>'
+    +'<td class="col-action"><button class="btn-view" data-case-id="'+escHtml(c.case_id)+'" aria-label="Review case '+escHtml(c.case_id)+'">Review <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></button></td>';
+  return tr;
+}
+
+var allCasesCache = []; // Store fetched cases for instant search filtering
+
+async function loadCases(tier) {
+  setLoadingState();
+  try {
+    var [cases] = await Promise.all([
+      getCases(tier || undefined),
+      new Promise(r => setTimeout(r, 1200)) // Artificial delay to show the animation
+    ]);
+    allCasesCache = cases;
+    renderCases(sortCases(cases), tier);
+    updateSortUI();
+  } catch(err) { setErrorState(err.message); }
+}
+
+function renderCases(casesToRender, tier) {
+  if (casesToRender.length === 0) { setEmptyState(tier); updateFooter(0,tier); return; }
+  var frag = document.createDocumentFragment();
+  casesToRender.forEach(function(c,i){ frag.appendChild(buildRow(c,i)); });
+  tbody.replaceChildren(frag);
+  table.setAttribute('aria-busy','false');
+  updateFooter(casesToRender.length, tier);
+}
+
+document.getElementById('search-input').addEventListener('input', function(e) {
+  var term = e.target.value.toLowerCase().trim();
+  if (!term) {
+    renderCases(sortCases(allCasesCache), currentTier);
+    return;
+  }
+  var filtered = allCasesCache.filter(function(c) {
+    return c.merchant_name.toLowerCase().includes(term) || 
+           c.case_id.toLowerCase().includes(term) ||
+           c.mcc_category.toLowerCase().includes(term);
+  });
+  renderCases(sortCases(filtered), currentTier);
+});
+
+/* ── Fix 7: Client-side sort ────────────────────────────────── */
+var sortKey = 'risk_score';
+var sortDir = 'desc';
+
+function sortCases(cases) {
+  return cases.slice().sort(function(a, b) {
+    var av = a[sortKey] !== undefined ? a[sortKey] : '';
+    var bv = b[sortKey] !== undefined ? b[sortKey] : '';
+    if (typeof av === 'number') return sortDir === 'desc' ? bv - av : av - bv;
+    av = String(av).toLowerCase();
+    bv = String(bv).toLowerCase();
+    if (av < bv) return sortDir === 'desc' ? 1 : -1;
+    if (av > bv) return sortDir === 'desc' ? -1 : 1;
+    return 0;
+  });
+}
+
+function updateSortUI() {
+  document.querySelectorAll('.col-sortable').forEach(function(th) {
+    th.classList.remove('sort-asc','sort-desc');
+    var ic = th.querySelector('.sort-icon');
+    if (ic) ic.textContent = '↕';
+  });
+  var active = document.querySelector('.col-sortable[data-sort="'+sortKey+'"]');
+  if (active) {
+    active.classList.add(sortDir === 'desc' ? 'sort-desc' : 'sort-asc');
+    var ic = active.querySelector('.sort-icon');
+    if (ic) ic.textContent = sortDir === 'desc' ? '↓' : '↑';
+  }
+}
+
+document.querySelectorAll('.col-sortable').forEach(function(th) {
+  th.addEventListener('click', function() {
+    var key = th.dataset.sort;
+    if (sortKey === key) { sortDir = sortDir === 'desc' ? 'asc' : 'desc'; }
+    else { sortKey = key; sortDir = 'desc'; }
+    updateSortUI();
+    var term = document.getElementById('search-input').value.toLowerCase().trim();
+    var pool = term ? allCasesCache.filter(function(c) {
+      return c.merchant_name.toLowerCase().includes(term) || c.case_id.toLowerCase().includes(term) || c.mcc_category.toLowerCase().includes(term);
+    }) : allCasesCache.slice();
+    renderCases(sortCases(pool), currentTier);
+  });
+});
+
+async function loadAllCounts() {
+  try {
+    var res = await Promise.all([getCases(), getCases('escalate'), getCases('agent_review'), getCases('auto_clear')]);
+    var all=res[0], esc=res[1], rev=res[2], clr=res[3];
+    var total = all.length;
+    animateCount(statTotal, total);
+    animateCount(statEscalate, esc.length);
+    animateCount(statReview, rev.length);
+    animateCount(statClear, clr.length);
+    countAll.textContent = total.toLocaleString();
+    countEscalate.textContent = esc.length.toLocaleString();
+    countReview.textContent = rev.length.toLocaleString();
+    countClear.textContent = clr.length.toLocaleString();
+
+    if (total > 0) {
+      document.getElementById('stat-escalate-pct').textContent = Math.round(esc.length/total*100) + '%';
+      document.getElementById('stat-review-pct').textContent = Math.round(rev.length/total*100) + '%';
+      document.getElementById('stat-clear-pct').textContent = Math.round(clr.length/total*100) + '%';
+      
+      // Small delay so animation triggers
+      setTimeout(function() {
+        document.getElementById('stat-escalate-bar').style.width = (esc.length/total*100) + '%';
+        document.getElementById('stat-review-bar').style.width = (rev.length/total*100) + '%';
+        document.getElementById('stat-clear-bar').style.width = (clr.length/total*100) + '%';
+      }, 100);
+    }
+  } catch(_) {}
+}
+
+function updateFooter(count, tier) {
+  footerCount.innerHTML = 'Showing <strong>'+count.toLocaleString()+'</strong> case'+(count===1?'':'s');
+  var tierLabel = tier ? 'Filtered: '+tier.replace(/_/g,' ') : 'All tiers';
+  var now = new Date();
+  var timeStr = now.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  footerFilter.innerHTML = tierLabel + ' &nbsp;·&nbsp; <span class="refresh-tag just-refreshed" id="refresh-tag">● Refreshed at '+timeStr+'</span>';
+  setTimeout(function() {
+    var tag = document.getElementById('refresh-tag');
+    if (tag) tag.classList.remove('just-refreshed');
+  }, 3000);
+}
+
+document.querySelectorAll('.tier-filter-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    var tier = btn.dataset.tier;
+    if (tier === currentTier) return;
+    currentTier = tier;
+    document.querySelectorAll('.tier-filter-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    loadCases(tier);
+  });
+});
+
+function openPanel(caseId, rowEl) {
+  if (activeRow) activeRow.classList.remove('panel-active');
+  activeRow = rowEl; rowEl.classList.add('panel-active');
+  activeCaseId = caseId;
+  panelMerchant.textContent = 'Loading...';
+  panelCaseId.textContent = caseId;
+  panelMcc.innerHTML = '<span style="color:var(--text-3)">-</span>';
+  panelScore.innerHTML = '<span style="color:var(--text-3)">-</span>';
+  panelTier.innerHTML  = '<span style="color:var(--text-3)">-</span>';
+  panelBody.innerHTML  = skeletonHTML();
+  hideBanner(); setVerdictBtnsDisabled(true);
+  panel.hidden = false;
+  requestAnimationFrame(function() {
+    panel.classList.add('open'); overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden','false'); btnClose.focus();
+  });
+  fetchAndRenderCase(caseId);
+}
+
+function closePanel() {
+  panel.classList.remove('open'); overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden','true');
+  if (activeRow) { activeRow.classList.remove('panel-active'); activeRow = null; }
+  activeCaseId = null;
+  panel.addEventListener('transitionend', function(){ panel.hidden = true; }, { once:true });
+}
+
+btnClose.addEventListener('click', closePanel);
+overlay.addEventListener('click', closePanel);
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && panel.classList.contains('open')) closePanel();
+});
+
+function skeletonHTML() {
+  return '<div class="panel-skeleton"><div class="skel" style="height:13px;width:60%"></div><div class="skel" style="height:78px"></div><div class="skel" style="height:13px;width:40%;margin-top:6px"></div><div class="skel" style="height:48px"></div><div class="skel" style="height:48px"></div><div class="skel" style="height:48px"></div></div>';
+}
+
+async function fetchAndRenderCase(caseId) {
+  try {
+    var c = await getCase(caseId);
+    if (activeCaseId !== caseId) return;
+    panelMerchant.textContent = c.merchant_name;
+    panelMcc.innerHTML = '<span style="font-weight:600;font-size:12px;color:var(--text-2)">' + escHtml(formatMcc(c.mcc_category)) + '</span>';
+    panelScore.innerHTML = renderRiskBadge(c.risk_score);
+    panelTier.innerHTML  = renderTierPill(c.decision_tier);
+    panelBody.innerHTML  = renderPanelBody(c);
+    setVerdictBtnsDisabled(false);
+  } catch(err) {
+    panelBody.innerHTML = '<div style="padding:20px;text-align:center"><span class="error-text">'+escHtml(err.message)+'</span></div>';
+  }
+}
+
+function renderPanelBody(c) {
+  var explanation = c.plain_language_explanation ? escHtml(c.plain_language_explanation) : '<em>No explanation available.</em>';
+  var reasonsHtml = (c.top_reasons||[]).map(function(r) {
+    var isUp = r.direction === 'raises risk';
+    var dir = isUp ? 'up' : 'down';
+    var arrow = isUp ? '+' : '-';
+    var imp = (r.impact>=0?'+':'')+r.impact.toFixed(3);
+    var val = typeof r.value==='number' ? (r.value%1===0?r.value.toString():r.value.toFixed(3)) : String(r.value);
+    return '<li class="reason-item"><span class="reason-direction '+dir+'" aria-label="'+escHtml(r.direction)+'">'+arrow+'</span><span class="reason-text"><div class="reason-label">'+escHtml(r.friendly_label)+'</div><div class="reason-value">value: '+escHtml(val)+'</div></span><span class="reason-impact '+dir+'" title="SHAP impact">'+escHtml(imp)+'</span></li>';
+  }).join('');
+  return '<div><div class="panel-section-label">AI Explanation</div><div class="panel-explanation">'+explanation+'</div></div><div><div class="panel-section-label">Top Risk Drivers</div><ul class="reasons-list">'+(reasonsHtml||'<li style="color:var(--text-3);font-size:13px">No reasons available.</li>')+'</ul></div>';
+}
+
+function setVerdictBtnsDisabled(d) { btnFraud.disabled = d; btnLegit.disabled = d; }
+
+async function submitVerdict(verdict) {
+  if (!activeCaseId) return;
+  setVerdictBtnsDisabled(true);
+  try {
+    var updated = await resolveCase(activeCaseId, verdict);
+    if (activeRow) {
+      var sc = activeRow.querySelector('[data-score-cell]');
+      var tc = activeRow.querySelector('[data-tier-cell]');
+      if (sc) sc.innerHTML = renderRiskBadge(updated.risk_score);
+      if (tc) tc.innerHTML = renderTierPill(updated.decision_tier);
+      var fc = verdict==='fraud' ? 'resolve-flash-fraud' : 'resolve-flash-legit';
+      activeRow.classList.remove('resolve-flash-fraud','resolve-flash-legit');
+      void activeRow.offsetWidth;
+      activeRow.classList.add(fc);
+      activeRow.addEventListener('animationend', function(){ activeRow && activeRow.classList.remove(fc); }, {once:true});
+    }
+    showBanner(verdict);
+  } catch(err) { setVerdictBtnsDisabled(false); showErrorBanner(err.message); }
+}
+btnFraud.addEventListener('click', function(){ submitVerdict('fraud'); });
+btnLegit.addEventListener('click', function(){ submitVerdict('legitimate'); });
+
+function showBanner(verdict) {
+  var labels = {fraud:'Marked as Fraud', legitimate:'Marked as Legitimate'};
+  panelBanner.className = 'panel-resolved-banner '+verdict;
+  panelBanner.textContent = labels[verdict]||verdict;
+  requestAnimationFrame(function(){ panelBanner.classList.add('show'); });
+}
+function showErrorBanner(msg) {
+  panelBanner.className = 'panel-resolved-banner';
+  panelBanner.style.background='var(--red-bg)';panelBanner.style.color='var(--red)';panelBanner.style.border='1px solid var(--red-border)';
+  panelBanner.textContent = 'Error: '+msg;
+  requestAnimationFrame(function(){ panelBanner.classList.add('show'); });
+}
+function hideBanner() { panelBanner.classList.remove('show'); panelBanner.className='panel-resolved-banner'; panelBanner.style.cssText=''; }
+
+tbody.addEventListener('click', function(e) {
+  var btn = e.target.closest('.btn-view');
+  if (!btn) return;
+  var caseId = btn.dataset.caseId;
+  var row    = btn.closest('tr');
+  if (caseId && row) openPanel(caseId, row);
+});
+
+loadCases('');
+loadAllCounts();
+
+document.getElementById('btn-demo').addEventListener('click', async function() {
+  if (currentTier !== '') { document.getElementById('btn-all').click(); await new Promise(function(r){ setTimeout(r, 600); }); }
+  var demoCases = ['CASE00002','CASE00015','CASE00000'];
+  for (var i=0; i<demoCases.length; i++) {
+    var cid = demoCases[i];
+    var row = document.querySelector('tr[data-case-id="'+cid+'"]');
+    if (row) {
+      row.scrollIntoView({behavior:'smooth',block:'center'});
+      row.style.transition='outline 0.25s, background 0.25s';
+      row.style.outline='2px solid var(--accent)';
+      row.style.background='var(--accent-muted)';
+      await new Promise(function(r){ setTimeout(r, 2000); });
+      row.style.outline=''; row.style.background='';
+      await new Promise(function(r){ setTimeout(r, 400); });
+    }
+  }
+});
+
+/* ── Tutorial engine ─────────────────────────────────────── */
+var STEPS = [
+  { id:'stats-row',      dir:'down',  title:'Live Statistics',  body:'These four cards show real-time counts of merchant risk cases. The coloured bar at the top of each card matches the risk tier. Numbers update as cases are triaged.' },
+  { id:'btn-all',        dir:'down',  title:'Filter by Tier',   body:'Use these buttons to filter the table to a specific decision tier: <strong>Escalate</strong>, <strong>Agent Review</strong>, or <strong>Auto Clear</strong>. The number badge shows the count for each tier.' },
+  { id:'cases-table',    dir:'up',    title:'Cases Table',      body:'Each row represents a scored merchant case. The <strong>Risk Score</strong> column shows a colour-coded percentage. Rows with a red left border are high priority. Click <strong>View</strong> to open the detail panel.' },
+  { id:'btn-demo',       dir:'down',  title:'Demo Mode',        body:'Click <strong>Demo</strong> to run an animated walkthrough that highlights example cases in sequence. Useful for training new analysts on the queue workflow.' },
+  { id:'btn-how-to-use', dir:'down',  title:'Ready to Start',   body:'Click <strong>View</strong> on any table row to open the case detail panel and submit your analyst verdict. Reopen this tutorial anytime from this button.', isLast:true }
+];
+
+var tutStep = 0;
+var tutActive = false;
+var tutOverlay = document.getElementById('tutorial-overlay');
+var tutSpot    = document.getElementById('tutorial-spotlight');
+var tutArrow   = document.getElementById('tutorial-arrow');
+var tutTip     = document.getElementById('tutorial-tooltip');
+
+function openTutorial() {
+  tutStep = 0; tutActive = true;
+  tutOverlay.classList.add('active');
+  tutOverlay.setAttribute('aria-hidden','false');
+  showStep(0);
+}
+function closeTutorial() {
+  tutActive = false;
+  tutOverlay.classList.remove('active');
+  tutOverlay.setAttribute('aria-hidden','true');
+  tutSpot.classList.remove('visible');
+  tutArrow.className = 'tutorial-arrow';
+  tutArrow.classList.remove('visible');
+  tutTip.classList.remove('visible','animate-in');
+}
+
+function showStep(idx) {
+  var step = STEPS[idx];
+  if (!step) { closeTutorial(); return; }
+  var el = document.getElementById(step.id);
+  if (!el) { showStep(idx+1); return; }
+  el.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(function(){ positionAll(el, step); renderTip(step, idx); }, 350);
+}
+
+function positionAll(el, step) {
+  var rect = el.getBoundingClientRect();
+  var pad = 10;
+  var vw = window.innerWidth, vh = window.innerHeight;
+
+  /* spotlight */
+  tutSpot.style.left   = (rect.left - pad)+'px';
+  tutSpot.style.top    = (rect.top  - pad)+'px';
+  tutSpot.style.width  = (rect.width  + pad*2)+'px';
+  tutSpot.style.height = (rect.height + pad*2)+'px';
+  tutSpot.classList.add('visible');
+
+  /* arrow */
+  var AW=20, AH=13;
+  tutArrow.className = 'tutorial-arrow dir-'+step.dir+' visible';
+  if (step.dir==='down') {
+    tutArrow.style.left = (rect.left + rect.width/2 - AW/2)+'px';
+    tutArrow.style.top  = (rect.top - pad - AH - 8)+'px';
+  } else if (step.dir==='up') {
+    tutArrow.style.left = (rect.left + rect.width/2 - AW/2)+'px';
+    tutArrow.style.top  = (rect.bottom + pad + 8)+'px';
+  }
+
+  /* tooltip */
+  var TW=296, TH=250;
+  var tipTop, tipLeft;
+  if (step.dir==='down') {
+    tipTop = rect.top - pad - AH - 8 - TH - 12;
+    if (tipTop < 10) tipTop = rect.bottom + pad + AH + 20;
+  } else {
+    tipTop = rect.bottom + pad + AH + 20;
+    if (tipTop + TH > vh - 10) tipTop = rect.top - pad - TH - AH - 20;
+  }
+  tipLeft = rect.left + rect.width/2 - TW/2;
+  
+  // CRITICAL FIX: Clamp both top and left to ensure tooltip is NEVER off-screen
+  tipTop = Math.max(12, Math.min(tipTop, vh - TH - 12));
+  tipLeft = Math.max(12, Math.min(tipLeft, vw - TW - 12));
+
+  tutTip.style.top  = tipTop+'px';
+  tutTip.style.left = tipLeft+'px';
+  tutTip.classList.add('visible');
+}
+
+// CRITICAL FIX: Allow clicking the background mask to escape the tutorial
+tutOverlay.addEventListener('click', function(e) {
+  if (e.target === tutOverlay || e.target === document.getElementById('tutorial-mask')) {
+    closeTutorial();
+  }
+});
+
+function renderTip(step, idx) {
+  var total = STEPS.length;
+  var pips = STEPS.map(function(_,i){
+    return '<div class="tut-pip'+(i<idx?' done':i===idx?' active':'')+'"></div>';
+  }).join('');
+  var html = '<div class="tut-title">'+step.title+'</div>'
+           +'<button class="tut-close-btn" id="tut-x" aria-label="Close tutorial"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="1" y1="1" x2="11" y2="11"/><line x1="11" y1="1" x2="1" y2="11"/></svg></button>';
+  if (step.isLast) {
+    html += '<div class="tut-body">'+step.body+'</div>'
+           +'<div class="tut-nav"><button class="tut-btn tut-btn-prev" id="tut-back">Back</button><button class="tut-btn tut-btn-next" id="tut-fwd" style="background:var(--accent);color:var(--bg)">Finish</button></div>';
+  } else {
+    html += '<div class="tut-progress">'+(idx+1)+' of '+STEPS.length+'</div>'
+           +'<div class="tut-body">'+step.body+'</div>'
+           +'<div class="tut-nav">'+(idx>0?'<button class="tut-btn tut-btn-prev" id="tut-back">Back</button>':'<div></div>')+'<button class="tut-btn tut-btn-next" id="tut-fwd">Next</button></div>'
+           +'<div class="tut-skip-row"><button class="tut-skip-btn" id="tut-skip">Skip tutorial</button></div>';
+  }
+  tutTip.innerHTML = html;
+  tutTip.classList.remove('animate-in');
+  void tutTip.offsetWidth;
+  tutTip.classList.add('animate-in');
+
+  var el;
+  el = document.getElementById('tut-fwd');
+  if (el) el.addEventListener('click', function(){ if(step.isLast){closeTutorial();}else{tutStep++;showStep(tutStep);} });
+  el = document.getElementById('tut-back');
+  if (el) el.addEventListener('click', function(){ tutStep=Math.max(0,tutStep-1);showStep(tutStep); });
+  el = document.getElementById('tut-x');
+  if (el) el.addEventListener('click', closeTutorial);
+  el = document.getElementById('tut-skip');
+  if (el) el.addEventListener('click', closeTutorial);
+}
+
+document.addEventListener('keydown', function(e){ if(e.key==='Escape'&&tutActive) closeTutorial(); });
+window.addEventListener('resize', function() {
+  if (!tutActive) return;
+  var s = STEPS[tutStep];
+  var el = s && document.getElementById(s.id);
+  if (el) positionAll(el, s);
+});
+document.getElementById('btn-how-to-use').addEventListener('click', openTutorial);
+
+/* ── Export to CSV ────────────────────────────────────────── */
+document.getElementById('btn-export').addEventListener('click', function() {
+  if (!allCasesCache || allCasesCache.length === 0) return;
+  
+  // Use currently filtered cases (if search is active) or all fetched cases
+  var term = document.getElementById('search-input').value.toLowerCase().trim();
+  var casesToExport = allCasesCache.filter(function(c) {
+    if (currentTier && c.decision_tier !== currentTier) return false;
+    if (!term) return true;
+    return c.merchant_name.toLowerCase().includes(term) || 
+           c.case_id.toLowerCase().includes(term) ||
+           c.mcc_category.toLowerCase().includes(term);
+  });
+  
+  var headers = ['Case ID', 'Merchant Name', 'MCC Category', 'Risk Score', 'Decision Tier', 'Ground Truth Label'];
+  var rows = casesToExport.map(function(c) {
+    return [
+      c.case_id,
+      '"' + c.merchant_name + '"',
+      c.mcc_category,
+      c.risk_score,
+      c.decision_tier,
+      c.ground_truth_label || 'N/A'
+    ].join(',');
+  });
+  
+  var csvContent = "data:text/csv;charset=utf-8," + headers.join(',') + "\n" + rows.join('\n');
+  var encodedUri = encodeURI(csvContent);
+  var link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "razorpay_trust_cases_" + new Date().getTime() + ".csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
+
+/* ── Live Toast Notifications (Simulation) ────────────────── */
+function showToast(title, msg, type) {
+  var container = document.getElementById('toast-container');
+  if (!container) return;
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + type;
+  toast.innerHTML = '<strong>' + escHtml(title) + '</strong><br>' + escHtml(msg);
+  container.appendChild(toast);
+  
+  // Animate in
+  requestAnimationFrame(function() { toast.classList.add('show'); });
+  
+  // Remove after 4s
+  setTimeout(function() {
+    toast.classList.remove('show');
+    toast.addEventListener('transitionend', function() { toast.remove(); });
+  }, 4000);
+}
+
+// Simulate random incoming cases for the demo removed as requested
+
+</script>
+</body>
+</html>
