@@ -67,12 +67,11 @@ Pipeline: **Risk scoring → 3-tier decision routing → SHAP explanations → G
 1. **Automated Triage:** Automatically scores and categorizes cases into `Auto Clear`, `Agent Review`, and `Escalate` tiers.
 2. **AI Explainability (GenAI):** Translates raw numeric risk drivers into plain-language summaries. Instead of looking at raw metrics, an analyst reads: *"This account was flagged because of a sudden 300% change in transaction volume combined with a high chargeback rate."*
 3. **Secure Self-Serve Merchant Portal:** A no-login public portal where merchants can securely check their case status, read an AI-generated explanation of their hold, and understand next steps without raising a support ticket.
-   <img width="1024" height="1536" alt="ChatGPT Image Sep 4, 2026, 07_40_41 PM" src="https://github.com/user-attachments/assets/0a147835-90c5-4aec-830b-b15388f001c1" />
 
+   <img width="1024" height="1536" alt="hdbcduche" src="https://github.com/user-attachments/assets/8f251fe3-e358-49c9-a19b-46ed9568068d" />
 
-<img width="850" height="568" alt="Solution overview — Ops Console" src="https://github.com/user-attachments/assets/c747e6a8-d42d-47c4-b7a3-ec0dbf8abe51" />
+<img width="1536" height="1024" alt="jhiuc d" src="https://github.com/user-attachments/assets/87cad146-30da-4562-984d-daf4ed48a4ad" />
 
-<img width="858" height="563" alt="Solution overview — Merchant Portal" src="https://github.com/user-attachments/assets/459da625-f6c8-48fe-a656-ac1637e92a8a" />
 
 ---
 
